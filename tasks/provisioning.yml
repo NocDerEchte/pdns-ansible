@@ -1,0 +1,9 @@
+---
+# Post-start provisioning tasks.
+# This file is the entry point for all tasks that configure the running
+# PowerDNS instance via its HTTP API after the service has been started.
+# New provisioning tasks should be added here as additional include_tasks blocks.
+
+- name: Manage autoprimaries
+  ansible.builtin.include_tasks: autoprimaries.yml
+  when: pdns_autoprimaries_manage | bool

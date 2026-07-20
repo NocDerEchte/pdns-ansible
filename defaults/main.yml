@@ -315,6 +315,8 @@ pdns_verbose: "{{ ansible_verbosity | int >= 2 }}"
 # Enable role-managed autoprimary configuration via the PowerDNS HTTP API.
 # When true, the role reconciles autoprimaries so that exactly the entries in
 # pdns_autoprimaries are present (missing ones are added, extra ones are removed).
+# Requires pdns_config['api'], pdns_config['api-key'], pdns_config['webserver'],
+# pdns_config['webserver-address'] and pdns_config['webserver-port'] to be set.
 # Note: autoprimaries are only supported by the gmysql, gpgsql, gsqlite3, and lmdb
 # backends. The task is skipped with a warning when only unsupported backends are
 # configured (e.g. bind).
@@ -329,16 +331,6 @@ pdns_autoprimaries: []
 #   - ip: "192.0.2.2"
 #     nameserver: "ns2.example.com"
 #     account: "myaccount"
-
-# Base URL of the PowerDNS HTTP API (scheme and host, no trailing slash or port).
-pdns_api_base_url: "http://127.0.0.1"
-
-# Port of the PowerDNS HTTP API (matches webserver-port in pdns.conf).
-pdns_api_port: 8081
-
-# API key used to authenticate against the PowerDNS HTTP API (api-key in pdns.conf).
-# This must be set to a non-empty value when pdns_autoprimaries_manage is true.
-pdns_api_key: ""
 
 # PowerDNS server ID used in API requests.
 pdns_api_server_id: "localhost"

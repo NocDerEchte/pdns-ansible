@@ -28,21 +28,26 @@
 - name: Reconcile autoprimaries via the PowerDNS HTTP API
   when: _pdns_backend_supports_autoprimaries
   vars:
-    _pdns_api_url: "{{ pdns_api_base_url }}:{{ pdns_api_port }}/api/v1/servers/{{ pdns_api_server_id }}"
+    _pdns_api_host: >-
+      {{ pdns_config['webserver-address'] | default('127.0.0.1')
+         | replace('0.0.0.0', '127.0.0.1') | replace('::', '127.0.0.1') }}
+    _pdns_api_port: "{{ pdns_config['webserver-port'] | default(8081) }}"
+    _pdns_api_key: "{{ pdns_config['api-key'] | default('') }}"
+    _pdns_api_url: "http://{{ _pdns_api_host }}:{{ _pdns_api_port }}/api/v1/servers/{{ pdns_api_server_id }}"
   block:
-    - name: Fail when pdns_api_key is not configured
+    - name: Fail when the API key is not configured
       ansible.builtin.fail:
         msg: >-
-          pdns_api_key must be set to a non-empty value when
+          pdns_config['api-key'] must be set to a non-empty value when
           pdns_autoprimaries_manage is true.
-      when: not pdns_api_key | default('')
+      when: not _pdns_api_key | default('')
 
     - name: Retrieve current autoprimaries from the PowerDNS API
       ansible.builtin.uri:
         url: "{{ _pdns_api_url }}/autoprimaries"
         method: GET
         headers:
-          X-API-Key: "{{ pdns_api_key }}"
+          X-API-Key: "{{ _pdns_api_key }}"
         return_content: true
         status_code: 200
       register: _pdns_autoprimaries_current
@@ -66,7 +71,7 @@
         url: "{{ _pdns_api_url }}/autoprimaries"
         method: POST
         headers:
-          X-API-Key: "{{ pdns_api_key }}"
+          X-API-Key: "{{ _pdns_api_key }}"
         body_format: json
         body: "{{ item }}"
         status_code: 201
@@ -79,7 +84,7 @@
         url: "{{ _pdns_api_url }}/autoprimaries/{{ item.ip }}/{{ item.nameserver }}"
         method: DELETE
         headers:
-          X-API-Key: "{{ pdns_api_key }}"
+          X-API-Key: "{{ _pdns_api_key }}"
         status_code: 204
       loop: "{{ _pdns_autoprimaries_current.json }}"
       when: (item.ip ~ ':' ~ item.nameserver) not in _pdns_autoprimaries_requested_keys

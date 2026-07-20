@@ -130,10 +130,9 @@
   tags:
     - service
 
-- name: Manage autoprimaries via the PowerDNS HTTP API
-  ansible.builtin.include_tasks: autoprimaries.yml
-  when:
-    - pdns_package_state != 'absent'
-    - pdns_autoprimaries_manage | bool
+- name: Run provisioning tasks
+  ansible.builtin.include_tasks: provisioning.yml
+  when: pdns_package_state != 'absent'
   tags:
+    - provisioning
     - autoprimaries
