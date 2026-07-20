@@ -41,17 +41,16 @@
       no_log: true
 
     - name: Build lookup sets for reconciliation
+      vars:
+        _existing: "{{ _pdns_autoprimaries_current.json }}"
+        _requested: "{{ pdns_autoprimaries }}"
       ansible.builtin.set_fact:
         _pdns_autoprimaries_existing_keys: >-
-          {{ _pdns_autoprimaries_current.json
-             | map(attribute='ip') | zip(_pdns_autoprimaries_current.json | map(attribute='nameserver'))
-             | map('join', ':')
-             | list }}
+          {{ _existing | map(attribute='ip') | zip(_existing | map(attribute='nameserver'))
+             | map('join', ':') | list }}
         _pdns_autoprimaries_requested_keys: >-
-          {{ pdns_autoprimaries
-             | map(attribute='ip') | zip(pdns_autoprimaries | map(attribute='nameserver'))
-             | map('join', ':')
-             | list }}
+          {{ _requested | map(attribute='ip') | zip(_requested | map(attribute='nameserver'))
+             | map('join', ':') | list }}
 
     - name: Add autoprimaries that are missing
       ansible.builtin.uri:

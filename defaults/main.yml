@@ -326,7 +326,6 @@ pdns_autoprimaries: []
 # pdns_autoprimaries:
 #   - ip: "192.0.2.1"
 #     nameserver: "ns1.example.com"
-#     account: ""
 #   - ip: "192.0.2.2"
 #     nameserver: "ns2.example.com"
 #     account: "myaccount"
