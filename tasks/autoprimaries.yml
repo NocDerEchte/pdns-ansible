@@ -1,0 +1,78 @@
+---
+# Manage autoprimaries via the PowerDNS HTTP API.
+#
+# Autoprimaries are only supported by database-backed backends.
+# Supported:   gmysql, gpgsql, gsqlite3, lmdb
+# Unsupported: bind
+#
+# The task reconciles the autoprimary list so that exactly the entries
+# defined in pdns_autoprimaries are present: missing entries are added and
+# entries not in the list are removed.
+
+- name: Check whether any configured backend supports autoprimaries
+  ansible.builtin.set_fact:
+    _pdns_backend_supports_autoprimaries: >-
+      {{ (pdns_backends | dict2items
+          | selectattr('key', 'match', '^(gmysql|gpgsql|gsqlite3|lmdb)(:.*)?$')
+          | list | length) > 0 }}
+
+- name: Warn and skip when no configured backend supports autoprimaries
+  ansible.builtin.debug:
+    msg: >-
+      None of the configured backends support autoprimaries (supported: gmysql,
+      gpgsql, gsqlite3, lmdb). Skipping autoprimary management.
+  when: not _pdns_backend_supports_autoprimaries
+
+- name: Reconcile autoprimaries via the PowerDNS HTTP API
+  when: _pdns_backend_supports_autoprimaries
+  vars:
+    _pdns_api_url: "{{ pdns_api_base_url }}:{{ pdns_api_port }}/api/v1/servers/{{ pdns_api_server_id }}"
+  block:
+    - name: Retrieve current autoprimaries from the PowerDNS API
+      ansible.builtin.uri:
+        url: "{{ _pdns_api_url }}/autoprimaries"
+        method: GET
+        headers:
+          X-API-Key: "{{ pdns_api_key }}"
+        return_content: true
+        status_code: 200
+      register: _pdns_autoprimaries_current
+      changed_when: false
+      no_log: true
+
+    - name: Build lookup sets for reconciliation
+      ansible.builtin.set_fact:
+        _pdns_autoprimaries_existing_keys: >-
+          {{ _pdns_autoprimaries_current.json
+             | map(attribute='ip') | zip(_pdns_autoprimaries_current.json | map(attribute='nameserver'))
+             | map('join', ':')
+             | list }}
+        _pdns_autoprimaries_requested_keys: >-
+          {{ pdns_autoprimaries
+             | map(attribute='ip') | zip(pdns_autoprimaries | map(attribute='nameserver'))
+             | map('join', ':')
+             | list }}
+
+    - name: Add autoprimaries that are missing
+      ansible.builtin.uri:
+        url: "{{ _pdns_api_url }}/autoprimaries"
+        method: POST
+        headers:
+          X-API-Key: "{{ pdns_api_key }}"
+        body_format: json
+        body: "{{ item }}"
+        status_code: 201
+      loop: "{{ pdns_autoprimaries }}"
+      when: (item.ip ~ ':' ~ item.nameserver) not in _pdns_autoprimaries_existing_keys
+      no_log: true
+
+    - name: Remove autoprimaries that are no longer requested
+      ansible.builtin.uri:
+        url: "{{ _pdns_api_url }}/autoprimaries/{{ item.ip }}/{{ item.nameserver }}"
+        method: DELETE
+        headers:
+          X-API-Key: "{{ pdns_api_key }}"
+        status_code: 204
+      loop: "{{ _pdns_autoprimaries_current.json }}"
+      when: (item.ip ~ ':' ~ item.nameserver) not in _pdns_autoprimaries_requested_keys
+      no_log: true
