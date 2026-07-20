@@ -10,10 +10,12 @@
 # entries not in the list are removed.
 
 - name: Check whether any configured backend supports autoprimaries
+  vars:
+    _pdns_autoprimary_supported_backends: '^(gmysql|gpgsql|gsqlite3|lmdb)(:.*)?$'
   ansible.builtin.set_fact:
     _pdns_backend_supports_autoprimaries: >-
       {{ (pdns_backends | dict2items
-          | selectattr('key', 'match', '^(gmysql|gpgsql|gsqlite3|lmdb)(:.*)?$')
+          | selectattr('key', 'match', _pdns_autoprimary_supported_backends)
           | list | length) > 0 }}
 
 - name: Warn and skip when no configured backend supports autoprimaries
@@ -28,6 +30,13 @@
   vars:
     _pdns_api_url: "{{ pdns_api_base_url }}:{{ pdns_api_port }}/api/v1/servers/{{ pdns_api_server_id }}"
   block:
+    - name: Fail when pdns_api_key is not configured
+      ansible.builtin.fail:
+        msg: >-
+          pdns_api_key must be set to a non-empty value when
+          pdns_autoprimaries_manage is true.
+      when: pdns_api_key | length == 0
+
     - name: Retrieve current autoprimaries from the PowerDNS API
       ansible.builtin.uri:
         url: "{{ _pdns_api_url }}/autoprimaries"
