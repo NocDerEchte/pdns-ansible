@@ -315,8 +315,9 @@ pdns_verbose: "{{ ansible_verbosity | int >= 2 }}"
 # Enable role-managed autoprimary configuration via the PowerDNS HTTP API.
 # When true, the role reconciles autoprimaries so that exactly the entries in
 # pdns_autoprimaries are present (missing ones are added, extra ones are removed).
-# Requires pdns_config['api'], pdns_config['api-key'], pdns_config['webserver'],
-# pdns_config['webserver-address'] and pdns_config['webserver-port'] to be set.
+# Requires pdns_config['api-key'] to be set. pdns_config['webserver-address'] and
+# pdns_config['webserver-port'] are used when present; they default to 127.0.0.1
+# and 8081 respectively.
 # Note: autoprimaries are only supported by the gmysql, gpgsql, gsqlite3, and lmdb
 # backends. The task is skipped with a warning when only unsupported backends are
 # configured (e.g. bind).

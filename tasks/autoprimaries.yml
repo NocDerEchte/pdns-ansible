@@ -40,7 +40,7 @@
         msg: >-
           pdns_config['api-key'] must be set to a non-empty value when
           pdns_autoprimaries_manage is true.
-      when: not _pdns_api_key | default('')
+      when: _pdns_api_key | length == 0
 
     - name: Retrieve current autoprimaries from the PowerDNS API
       ansible.builtin.uri:
